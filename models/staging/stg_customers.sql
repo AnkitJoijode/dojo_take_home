@@ -1,22 +1,19 @@
--- models/staging/stg_customers.sql
--- Staging model for customers with basic cleaning
-
-WITH source AS (
-    SELECT * FROM {{ source('dojo_take_home', 'customers') }}
+with source as (
+    select * from {{ source('dojo_take_home', 'customers') }}
 ),
 
-cleaned AS (
-    SELECT
+customers as (
+    select
         customer_id,
-        -- Clean country codes (fix typo: 'GBRR' -> 'GBR')
-        CASE 
-            WHEN UPPER(TRIM(country)) = 'GBRR' THEN 'GBR'
-            ELSE UPPER(TRIM(country))
-        END as country
-    FROM source
+        -- clean country codes
+        case 
+            when upper(trim(country)) = 'GBRR' then 'GBR'
+            else upper(trim(country))
+        end as country
+    from source
 )
 
-SELECT DISTINCT
+select distinct
     customer_id,
     country
-FROM cleaned
+from customers
