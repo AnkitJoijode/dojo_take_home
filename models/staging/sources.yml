@@ -1,0 +1,58 @@
+version: 2
+
+sources:
+  - name: dojo_take_home
+    description: Raw data sources from Dojo transaction processing system
+    database: dbt_aj
+    schema: dojo_take_home
+    tables:
+      - name: transactions
+        description: Raw transactions table containing one row per transaction
+        columns:
+          - name: transaction_id
+            description: Unique identifier for the transaction
+            tests:
+              - not_null
+          - name: customer_id
+            description: Foreign key to customers table
+            tests:
+              - not_null
+          - name: transaction_amount
+            description: Transaction value in GBP
+            tests:
+              - not_null
+          - name: transaction_datetime
+            description: Timestamp when transaction was initiated
+            tests:
+              - not_null
+
+      - name: transaction_status_log
+        description: |
+          Raw status log table containing one row per status transition.
+          Multiple rows per transaction as it moves through workflow.
+        columns:
+          - name: transaction_id
+            description: Foreign key to transactions table
+            tests:
+              - not_null
+          - name: status
+            description: Status value (may contain inconsistencies like 'completed')
+            tests:
+              - not_null
+          - name: status_datetime
+            description: Timestamp when status was recorded
+            tests:
+              - not_null
+
+      - name: customers
+        description: Raw customers table containing merchant information
+        columns:
+          - name: customer_id
+            description: Unique identifier for customer
+            tests:
+              - unique
+              - not_null
+          - name: country
+            description: Customer's country code (may contain data quality issues)
+            tests:
+              - not_null
