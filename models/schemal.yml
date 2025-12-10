@@ -1,0 +1,146 @@
+version: 2
+
+models:
+  # staging layer
+  - name: stg_customers
+    description: cleaned customer data with corrected country codes
+    columns:
+      - name: customer_id
+        description: unique customer identifier
+        tests:
+          - unique
+          - not_null
+      - name: country
+        description: customer country code (iso 3166-1 alpha-3)
+        tests:
+          - accepted_values:
+              values: ['GBR', 'ESP', 'FRA', 'DEU', 'ITA', 'USA']
+
+  - name: stg_transactions
+    description: deduplicated transactions (removes duplicate transaction ids)
+    columns:
+      - name: transaction_id
+        description: unique transaction identifier
+        tests:
+          - unique
+          - not_null
+      - name: customer_id
+        description: foreign key to customers
+        tests:
+          - not_null
+      - name: transaction_amount
+        description: transaction value in gbp
+        tests:
+          - not_null
+      - name: transaction_datetime
+        description: when transaction was created
+        tests:
+          - not_null
+
+  - name: stg_transaction_status_log
+    description: normalized status log (fixes "completed" typo)
+    columns:
+      - name: transaction_id
+        description: foreign key to transactions
+        tests:
+          - not_null
+      - name: status
+        description: status value
+        tests:
+          - accepted_values:
+              values: ['approved', 'declined', 'held', 'settled', 'complete']
+      - name: status_datetime
+        description: when status was recorded
+        tests:
+          - not_null
+
+  # marts layer
+  - name: dim_customers
+    description: customer dimension table (one row per customer)
+    columns:
+      - name: customer_id
+        description: unique customer identifier (primary key)
+        tests:
+          - unique
+          - not_null
+      - name: country
+        description: customer country code
+
+  - name: fct_transactions
+    description: |
+      core fact table with one row per transaction.
+      includes denormalized status timestamps for performance.
+      
+      data quality note: 62 of 151 transactions (41.1%) have no status logs
+      due to system incident on january 11-12, 2025
+    columns:
+      - name: transaction_id
+        description: unique transaction identifier (primary key)
+        tests:
+          - unique
+          - not_null
+      - name: customer_id
+        description: foreign key to dim_customers
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_customers')
+              field: customer_id
+      - name: transaction_amount
+        description: transaction value in gbp
+      - name: transaction_datetime
+        description: when transaction was created
+      - name: approved_datetime
+        description: when transaction was approved (denormalized)
+      - name: complete_datetime
+        description: when transaction completed (denormalized)
+      - name: was_held
+        description: boolean flag indicating if transaction was ever held
+      - name: processing_time_seconds
+        description: time from approval to completion in seconds
+      - name: final_status
+        description: latest status of the transaction
+
+  - name: fct_transaction_status_log
+    description: complete audit trail of all status transitions
+    columns:
+      - name: transaction_id
+        description: foreign key to fct_transactions
+        tests:
+          - not_null
+          - relationships:
+              to: ref('fct_transactions')
+              field: transaction_id
+      - name: status
+        description: status value
+      - name: status_datetime
+        description: when status was recorded
+      - name: status_sequence
+        description: sequential number for ordering status events
+
+  # reports layer
+  - name: rpt_cto_by_country
+    description: customer transaction output aggregated by country
+    columns:
+      - name: country
+        description: customer country code
+      - name: total_cto
+        description: sum of all approved transaction amounts in gbp
+      - name: transaction_count
+        description: number of approved transactions
+
+  - name: rpt_system_timeliness
+    description: average processing time from approval to completion
+    columns:
+      - name: total_transactions_analyzed
+        description: count of transactions with both approved and complete timestamps
+      - name: avg_processing_time_minutes
+        description: average time from approval to completion in minutes
+
+  - name: rpt_system_efficiency
+    description: percentage of approved transactions settled without hold
+    columns:
+      - name: total_approved_settled_transactions
+        description: transactions that were both approved and settled
+      - name: efficiency_percentage
+        description: percentage settled without hold (higher is better)
