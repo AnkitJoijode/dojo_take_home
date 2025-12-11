@@ -1,4 +1,3 @@
--- tests/specific/test_invalid_timestamps.sql
 -- detects timestamp anomalies: future dates, dates before business started, or unrealistic dates
 
 select 
