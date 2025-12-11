@@ -1,4 +1,4 @@
--- fct_transactions.sql (incremental version - final working version)
+
 
 {{ config(
     materialized='incremental',

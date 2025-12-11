@@ -1,4 +1,4 @@
--- report: cto (customer transaction output) by country
+
 -- cto = total value of approved transactions
 
 with approved_transactions as (

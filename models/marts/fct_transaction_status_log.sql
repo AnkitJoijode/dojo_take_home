@@ -1,6 +1,5 @@
--- fact table: complete status event log
--- grain: one row per status event
--- purpose: audit trail and detailed workflow analysis
+--  complete status event log - grain: one row per status event
+
 
 {{ config(
     materialized='incremental',

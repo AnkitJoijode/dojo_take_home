@@ -1,4 +1,4 @@
--- report: system efficiency
+
 -- percentage of approved transactions settled without being held
 
 with approved_settled_transactions as (

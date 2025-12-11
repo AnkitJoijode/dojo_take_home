@@ -1,4 +1,4 @@
--- dimension: customers
+
 -- one row per customer
 
 select
